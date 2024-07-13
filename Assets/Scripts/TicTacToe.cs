@@ -142,6 +142,11 @@ public class TicTacToe : MonoBehaviour
     // ゲームの終了判定を行う
     private bool IsGameOver()
     {
+        if (IsWin() || IsDraw())
+        {
+            Debug.Log("GameOver");
+            return true;
+        }
         return false;
     }
 
@@ -199,6 +204,7 @@ public class TicTacToe : MonoBehaviour
     // 自分のターン
     private IEnumerator PlayerTurn()
     {
+        Debug.Log("自分のターン");
         bool isTurnEnded = false;
 
         while (!isTurnEnded)
@@ -210,11 +216,14 @@ public class TicTacToe : MonoBehaviour
 
             yield return null;
         }
+
+        yield return new WaitForSeconds(1);
     }
 
     // 相手のターン
     private IEnumerator EnemyTurn()
     {
+        Debug.Log("敵のターン");
         bool isTurnEnded = false;
 
         while (!isTurnEnded)
@@ -229,7 +238,7 @@ public class TicTacToe : MonoBehaviour
     //　ゲームをリセット
     private void ResetGame()
     {
-
+        foreach (var cell in cells) cell.sprite = null;
     }
 
     // ゲームフロー
