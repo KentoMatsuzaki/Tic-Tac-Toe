@@ -51,6 +51,7 @@ public class TicTacToe : MonoBehaviour
             }
         }
 
+        // ゲームフローを開始する
         StartCoroutine(GameFlow());
     }
 
@@ -76,7 +77,7 @@ public class TicTacToe : MonoBehaviour
                 var cell = cells[r, c];
                 cell.color = (r == selectedRow && c == selectedColumn) ? selectedColor : defaultColor;
             }
-        }        
+        }
     }
 
     // キャンバスのセットアップ
@@ -104,13 +105,19 @@ public class TicTacToe : MonoBehaviour
     }
 
     // 選択しているセルのスプライトを変更する
-    private void ChangeSelectedCellSprite()
+    private bool ChangeSelectedCellSprite()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
             var cell = cells[selectedRow, selectedColumn];
-            cell.sprite = circle;
+
+            if (cell.sprite == null)
+            {
+                cell.sprite = circle;
+                return true;
+            }
         }
+        return false;
     }
 
     // ランダムなセルのスプライトを変更する
@@ -132,9 +139,60 @@ public class TicTacToe : MonoBehaviour
 
     private Image GetRandomCell() => cells[GetRandomRow(), GetRandomCol()];
 
-    // ゲームオーバーの判定を行う
+    // ゲームの終了判定を行う
     private bool IsGameOver()
     {
+        return false;
+    }
+
+    // 引き分け判定
+    private bool IsDraw()
+    {
+        if(IsWin()) return false;
+
+        foreach (var cell in cells) if (cell.sprite == null) return false;
+
+        return true;
+    }
+
+    // 勝利判定
+    private bool IsWin()
+    {
+        if (CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner()) return true;
+        else return false;
+    }
+
+    // 行の判定
+    private bool CheckRowsForWinner()
+    {
+        for(int r = 0; r < Size; r++)
+        {
+            if(cells[r, 0].sprite != null && cells[r, 0].sprite == cells[r, 1].sprite 
+                && cells[r, 0].sprite == cells[r, 2].sprite) return true;
+        }
+        return false;
+    }
+
+    // 列の判定
+    private bool CheckColumnsForWinner()
+    {
+        for(int c = 0; c < Size; c++)
+        {
+            if (cells[0, c].sprite != null && cells[0, c].sprite == cells[1, c].sprite 
+                && cells[0, c].sprite == cells[2, c].sprite) return true;
+        }
+        return false;
+    }
+
+    // 斜めの判定
+    private bool CheckDiagonalsForWinner()
+    {
+        if (cells[0, 0].sprite != null && cells[0, 0].sprite ==
+            cells[1, 1].sprite && cells[0, 0].sprite == cells[2, 2].sprite) return true;
+
+        if (cells[0, 2].sprite != null && cells[0, 2].sprite ==
+            cells[1, 1].sprite && cells[0, 2].sprite == cells[2, 0].sprite) return true;
+
         return false;
     }
 
@@ -145,11 +203,13 @@ public class TicTacToe : MonoBehaviour
 
         while (!isTurnEnded)
         {
-            ChangeSelectedCellSprite();
-            isTurnEnded = true;
-        }
+            if (ChangeSelectedCellSprite())
+            {
+                isTurnEnded = true;
+            }
 
-        yield return null;
+            yield return null;
+        }
     }
 
     // 相手のターン
@@ -161,16 +221,10 @@ public class TicTacToe : MonoBehaviour
         {
             ChangeRandomCellSprite();
             isTurnEnded = true;
+
+            yield return null;
         }
-
-        yield return null;
     }
-
-    // リザルト表示
-    //private IEnumerator ShowResult()
-    //{
-
-    //}
 
     //　ゲームをリセット
     private void ResetGame()
@@ -183,7 +237,7 @@ public class TicTacToe : MonoBehaviour
     {
         while (true)
         {
-            while (IsGameOver())
+            while (!IsGameOver())
             {
                 yield return PlayerTurn();
 
@@ -191,7 +245,6 @@ public class TicTacToe : MonoBehaviour
 
                 yield return EnemyTurn();
             }
-            //yield return ShowResult();
 
             ResetGame();
         }
