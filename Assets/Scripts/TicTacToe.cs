@@ -31,6 +31,14 @@ public class TicTacToe : MonoBehaviour
     // ✕のスプライト
     [SerializeField] private Sprite cross;
 
+    // ゲーム情報を表示するテキスト
+    [SerializeField] private Text turnText;
+
+    [SerializeField] private Text resultText;
+
+    // ターン情報
+    private string turnPlayer;
+
     private void Start()
     {
         // キャンバスを作成
@@ -97,7 +105,7 @@ public class TicTacToe : MonoBehaviour
 
         // GridLayoutGroupコンポーネントを追加して設定する
         var gridLayoutGroup = canvasObj.AddComponent<GridLayoutGroup>();
-        gridLayoutGroup.cellSize = new Vector2(250, 250);
+        gridLayoutGroup.cellSize = new Vector2(150, 150);
         gridLayoutGroup.spacing = new Vector2(25, 25);
         gridLayoutGroup.childAlignment = TextAnchor.MiddleCenter;
         gridLayoutGroup.constraint = GridLayoutGroup.Constraint.FixedRowCount;
@@ -133,6 +141,99 @@ public class TicTacToe : MonoBehaviour
         randomCell.sprite = cross;
     }
 
+    // 最善手のセルのスプライトを変更する
+    private void ChangeBestCellSprite()
+    {
+        int bestScore = int.MinValue;
+        int row = -1;
+        int column = -1;
+
+        for (int r = 0; r < Size; r++)
+        {
+            for (int c = 0; c < Size; c++)
+            {
+                if (cells[r, c].sprite == null)
+                {
+                    cells[r, c].sprite = cross;
+                    int score = Minimax(0, false);
+                    cells[r, c].sprite = null;
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        row = r;
+                        column = c;
+                    }
+                }
+            }
+        }
+
+        if (row != -1 && column != -1 && cells[row, column].sprite == null)
+        {
+            cells[row, column].sprite = cross;
+        }
+    }
+
+    // 再帰的に現在の一手を評価する
+    int Minimax(int depth, bool isMaximizing)
+    {
+        if (IsWin())
+        {
+            return isMaximizing ? -1 : 1;
+        }
+        if (IsDraw())
+        {
+            return 0;
+        }
+
+        if (isMaximizing)
+        {
+            int bestScore = int.MinValue;
+
+            for (int r = 0; r < Size; r++)
+            {
+                for (int c = 0; c < Size; c++)
+                {
+                    if (cells[r, c].sprite == null)
+                    {
+                        cells[r, c].sprite = cross;
+
+                        int score = Minimax(depth + 1, false);
+
+                        cells[r, c].sprite = null;
+
+                        bestScore = Mathf.Max(score, bestScore);
+                    }
+                }
+            }
+            return bestScore;
+        }
+
+        // 相手が自分のスコアを最小化するように行動すると仮定
+        else
+        {
+            int bestScore = int.MaxValue;
+
+            for (int r = 0; r < Size; r++)
+            {
+                for (int c = 0; c < Size; c++)
+                {
+                    if (cells[r, c].sprite == null)
+                    {
+                        cells[r, c].sprite = circle;
+
+                        int score = Minimax(depth + 1, true);
+
+                        cells[r, c].sprite = null;
+
+                        bestScore = Mathf.Min(score, bestScore);
+                    }
+                }
+            }
+            return bestScore;
+        }
+    }
+
     private int GetRandomRow() => Random.Range(0, Size);
 
     private int GetRandomCol() => Random.Range(0, Size);
@@ -144,7 +245,7 @@ public class TicTacToe : MonoBehaviour
     {
         if (IsWin() || IsDraw())
         {
-            Debug.Log("GameOver");
+
             return true;
         }
         return false;
@@ -157,13 +258,19 @@ public class TicTacToe : MonoBehaviour
 
         foreach (var cell in cells) if (cell.sprite == null) return false;
 
+        //resultText.text = "Draw";
+
         return true;
     }
 
     // 勝利判定
     private bool IsWin()
     {
-        if (CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner()) return true;
+        if (CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner())
+        {
+            //resultText.text = $"勝者：{turnPlayer}";
+            return true;
+        }
         else return false;
     }
 
@@ -204,8 +311,9 @@ public class TicTacToe : MonoBehaviour
     // 自分のターン
     private IEnumerator PlayerTurn()
     {
-        Debug.Log("自分のターン");
+        turnText.text = "あなたのターンです";
         bool isTurnEnded = false;
+        turnPlayer = "Player";
 
         while (!isTurnEnded)
         {
@@ -223,22 +331,27 @@ public class TicTacToe : MonoBehaviour
     // 相手のターン
     private IEnumerator EnemyTurn()
     {
-        Debug.Log("敵のターン");
+        turnText.text = "相手のターンです";
         bool isTurnEnded = false;
+        turnPlayer = "AI";
 
         while (!isTurnEnded)
         {
-            ChangeRandomCellSprite();
+            //ChangeRandomCellSprite();
+            ChangeBestCellSprite();
             isTurnEnded = true;
 
             yield return null;
         }
+
+        yield return new WaitForSeconds(1);
     }
 
     //　ゲームをリセット
-    private void ResetGame()
+    private IEnumerator ResetGame()
     {
         foreach (var cell in cells) cell.sprite = null;
+        yield return new WaitForSeconds(1);
     }
 
     // ゲームフロー
@@ -255,7 +368,8 @@ public class TicTacToe : MonoBehaviour
                 yield return EnemyTurn();
             }
 
-            ResetGame();
+            yield return ResetGame();
+            resultText.text = string.Empty;
         }
     }
 }
